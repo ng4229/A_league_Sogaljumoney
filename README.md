@@ -34,15 +34,12 @@ global max_h;
 level = 1;
 min_h = 0.225;
 max_h = 0.405;
+threshold_ring = 50; % 링 통과 조건
 ```
 
 * 이륙
 ```
 takeoff(droneObj);
-```
-
-* 상승
-```
 moveup(droneObj, 'Distance', 0.3);
 ```
 
@@ -55,58 +52,57 @@ preview(cameraObj);
 
 * 링 홀의 중앙 좌표값 검출
 ```
-[hall_frame, x, y] = loc_recog(frame);
-
 while 1
     pause(2);
     [frame,ts] = snapshot(cameraObj);
     [hall_frame, x, y] = loc_recog(frame);
     
-    left = 0;
-    right = 0;
-    if nnz(hall_frame) < 50
-        Rotate(droneObj, -30);
-        left = 1;
-        [hall_frame, x, y] = loc_recog(frame);
-        continue;
-    end
-    if left == 1
-        Rotate(droneObj, )
-        
-    
     if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
+        if level == 3
+            Move(droneObj, 0.2, "back");
+        end
         continue;
     end
 ```
     
-* 삭제 예정 항목(중앙 점 찍기)
+* 링의 중앙점이 최적 거리 내에 있을 때 직진 2.3M
 ```
-    for r = x-5:x+5
-       for c = y-5:y+5
-           hall_frame(c, r) = 0;
-       end
-    end
-    imshow(hall_frame);
-```
-    
-* 직진 2.5M
-```
-    if ((x >= 420) && (x <= 580)) && ((y >= 100) && (y <= 200))
-        dist = 2.5;
+    if ((x >= 450) && (x <= 550)) && ((y >= 110) && (y <= 190))
+        dist = 2.3;
         dir = "forward";
         disp("forward");
         Move(droneObj, dist, dir);
 ```
-     
+
+* 첫번째 두번째 링 통과 후 다음 링 홀 위치 파악 후 이동
 ```
-        if level < 3
+       if level < 3
             Rotate(droneObj, -90);
-            Move(droneObj, 1, dir);
+            [frame,ts] = snapshot(cameraObj);
+            [hall_frame, x, y] = loc_recog(frame);
+            
+            if x < 500
+                Move(droneObj, 1, dir);
+                dir = "left";
+                Move(droneObj, 0.3, dir);
+            else
+                Move(droneObj, 1, dir);
+                dir = "right";
+                Move(droneObj, 0.3, dir);
+            end
             level = level + 1;
+```
+
+* 세번째 링 통과 후 착지
+```
         elseif level == 3
             land(droneObj);
             break;
         end
+```
+
+* 링의 중앙점이 최적 거리 내에 없을 때 중앙점의 좌표에 따라 드론을 이동
+```
     else
         dist = 0.2;
         x_diff = x - 500;
@@ -133,25 +129,38 @@ while 1
         end
     end
 end
+```
 
+* 위치 인식
+```
 function [hall_frame, x, y] = loc_recog(frame)
     global min_h;
     global max_h;
     
     hsv = rgb2hsv(frame);
     h = hsv(:,:,1);
-    
     detect_green = (min_h < h) & (h < max_h);
     
-    % 픽셀수가 일정 개수보다 적은 연결성분 제거
+```
+
+* 픽셀수가 일정 개수보다 적은 연결성분 제거
+```
     bw = bwareaopen(detect_green, 1000);
-    
-    %침식
+```
+
+* 침식
+```
     se = strel('line', 20, 0);
     bw = imerode(bw,se);
-    
-    % 팽창
+```
+
+* 팽창
+```
     bw = imdilate(bw, se);
+```
+
+* 링의 중앙점 검출
+```
     [width, height] = size(bw);
     
     for i = 1:height
@@ -174,9 +183,11 @@ function [hall_frame, x, y] = loc_recog(frame)
     y = int16(median(row));
     x = int16(median(col));
 end
+```
 
+* 입력되는 방향에 따라 드론을 이동
+```
 function rtn = Move(droneObj, dist, dir)
-    % 입력되는 방향에 따라 드론을 이동
     if dir == "forward"
         moveforward(droneObj, 'Distance', dist);
     elseif dir == "back"
@@ -192,7 +203,10 @@ function rtn = Move(droneObj, dist, dir)
     end
     rtn = "";
 end
+```
 
+* 입력 받은 각도만큼 드론을 회전
+```
 function rtn = Rotate(droneObj,ang)
     % 입력 받은 각도만큼 드론을 회전
     turn(droneObj, deg2rad(ang));
