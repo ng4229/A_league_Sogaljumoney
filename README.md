@@ -11,9 +11,9 @@
 ![미니드론알고리즘](https://user-images.githubusercontent.com/61452782/87249449-1b490780-c49a-11ea-8aa9-996f42cff3ce.jpg)
 
 1. 이륙
-2. 링의 중앙점에 드론이 - 위치 해 있는지- 인식
+2. 링의 중앙점에 드론이 **위치 해 있는지 인식**
 * 링의 중앙점에 드론이 위치 해 있을 경우
-  + 다음 단계
+  + **다음 단계**
 * 링의 중앙점에 드론이 위치하지 않을 경우
   + 상하좌우 조정
 3. 드론이 링의 중앙점에 위치하고 직진비행 할 수 있는 최적 거리인지 판단(링을 통과하여 무리 없이 비행할 수 있는지)
@@ -31,21 +31,26 @@ level = 1;
 min_h = 0.225;
 max_h = 0.405;
 ```
-* 이륙
 
+* 이륙
 ```
 takeoff(droneObj);
 ```
+
 * 상승
 ```
 moveup(droneObj, 'Distance', 0.3);
 ```
 
+* 텔로 카메라 프레임 수신
+```
 cameraObj = camera(droneObj);
 preview(cameraObj);
-
 [frame,ts] = snapshot(cameraObj);
+```
 
+* 링 홀의 중앙 좌표값 검출
+```
 [hall_frame, x, y] = loc_recog(frame);
 
 while 1
@@ -68,20 +73,28 @@ while 1
     if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
         continue;
     end
+```
     
+* 삭제 예정 항목(중앙 점 찍기)
+```
     for r = x-5:x+5
        for c = y-5:y+5
            hall_frame(c, r) = 0;
        end
     end
     imshow(hall_frame);
+```
     
+* 직진 2.5M
+```
     if ((x >= 420) && (x <= 580)) && ((y >= 100) && (y <= 200))
         dist = 2.5;
         dir = "forward";
         disp("forward");
         Move(droneObj, dist, dir);
-        
+```
+     
+```
         if level < 3
             Rotate(droneObj, -90);
             Move(droneObj, 1, dir);
@@ -181,3 +194,4 @@ function rtn = Rotate(droneObj,ang)
     turn(droneObj, deg2rad(ang));
     rtn = "";
 end
+```
