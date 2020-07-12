@@ -8,7 +8,8 @@
 * 침식과 팽창을 사용한 노이즈 제거
 * 링 중앙점 인식 정확도를 높임
 ### [✔ 알고리즘 설명] 
-![미니드론알고리즘](https://user-images.githubusercontent.com/61452782/87249169-6b26cf00-c498-11ea-8a11-60d20577f32a.jpg)
+![미니드론알고리즘](https://user-images.githubusercontent.com/61452782/87249449-1b490780-c49a-11ea-8aa9-996f42cff3ce.jpg)
+
 1. 이륙
 2. 링의 중앙점에 드론이 - 위치 해 있는지- 인식
 * 링의 중앙점에 드론이 위치 해 있을 경우
