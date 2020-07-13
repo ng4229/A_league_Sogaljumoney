@@ -212,7 +212,6 @@ end
 * 입력 받은 각도만큼 드론을 회전
 ```
 function rtn = Rotate(droneObj,ang)
-    % 입력 받은 각도만큼 드론을 회전
     turn(droneObj, deg2rad(ang));
     rtn = "";
 end
