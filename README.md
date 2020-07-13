@@ -78,7 +78,7 @@ while 1
         Move(droneObj, dist, dir);
 ```
 
-* 첫번째 두번째 링 통과 후 다음 링 홀 위치 파악 후 이동
+* 1단계 2단계 각각 링 통과 후 다음 링 홀 위치 파악 후 이동
 ```
        if level < 3
             Rotate(droneObj, -90);
@@ -97,7 +97,7 @@ while 1
             level = level + 1;
 ```
 
-* 세번째 링 통과 후 착지
+* 3단계 링 통과 후 착지
 ```
         elseif level == 3
             land(droneObj);
