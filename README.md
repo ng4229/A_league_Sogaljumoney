@@ -33,17 +33,21 @@
 
 ------------------------------------------------------
 ### [✔ 소스코드 설명] 
-
-* 변수 선언
+----------------------------------------------------
+####✔ 1차 시도(기본 코드로 사용할 예정)
+---------------------------------------------------
+* 변수 선언 및 임계값 설정
 ```
 droneObj = ryze()
 
-global min_h;
-global max_h;
-level = 1;
-min_h = 0.225;
-max_h = 0.405;
-threshold_ring = 50; % 링 통과 조건
+% 임계값 설정
+global min_h;   global max_h;
+min_h = 0.225;  max_h = 0.405;
+global dist_to_cir;
+dist_to_cir = 2.45;
+global move_dist;
+move_dist = 0;
+
 ```
 
 * 이륙
@@ -61,19 +65,15 @@ preview(cameraObj);
 
 * 링 홀의 중앙 좌표값 검출
 ```
+[hall_frame, x, y] = loc_recog(frame);
 while 1
-    pause(2);
     [frame,ts] = snapshot(cameraObj);
-    [hall_frame, x, y] = loc_recog(frame);
-    
+    [hall_frame, x, y] = loc_recog(frame)
     if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
-        if level == 3
-            Move(droneObj, 0.2, "back");
-        end
         continue;
     end
 ```
-    
+
 * 링의 중앙점이 최적 거리 내에 있을 때 직진 2.3M
 ```
     if ((x >= 450) && (x <= 550)) && ((y >= 110) && (y <= 190))
