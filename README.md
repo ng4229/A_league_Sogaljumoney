@@ -34,7 +34,7 @@
 ------------------------------------------------------
 ### [✔ 소스코드 설명] 
 ----------------------------------------------------
-#### ✔ 1차 시도(기본 코드로 사용할 예정)
+#### ✔ 1차 시도(기본 코드)
 ---------------------------------------------------
 * 변수 선언 및 임계값 설정
 ```
@@ -42,11 +42,13 @@ droneObj = ryze()
 
 global min_h;   global max_h;
 min_h = 0.225;  max_h = 0.405;
+```
+* 1단계 disttocir - movedist만큼 전진해서 링통과
+```
 global dist_to_cir;
 dist_to_cir = 2.45;
 global move_dist;
 move_dist = 0;
-
 ```
 
 * 이륙
@@ -68,55 +70,74 @@ preview(cameraObj);
 while 1
     [frame,ts] = snapshot(cameraObj);
     [hall_frame, x, y] = loc_recog(frame)
-    if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
+```
+
+* 링의 중앙값 인식 안될 시 재인식
+```
+   if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
         continue;
     end
+    
+    for r = x-5:x+5
+       for c = y-5:y+5
+           hall_frame(c, r) = 0;
+       end
+    end
+    subplot(3, 1, 1); imshow(hall_frame);
 ```
----------------------------------------------------------
-
-* 링의 중앙점이 최적 거리 내에 있을 때 직진 2.3M
+* 드론이 링의 중앙 범위에 위치할 때 표식까지 남은 거리만큼 전진
 ```
     if ((x >= 450) && (x <= 550)) && ((y >= 110) && (y <= 190))
-        dist = 2.3;
-        dir = "forward";
-        disp("forward");
-        Move(droneObj, dist, dir);
+        dist = dist_to_cir - move_dist;
+        Move(droneObj, dist, "forward");
+        move_dist = 0;
+        dist_to_cir = 3.2;
+        force_cir_noncheck = 0;
 ```
 
-* 1단계 2단계 각각 링 통과 후 다음 링 홀 위치 파악 후 이동
+* 이전에 표식 검출 하지 않았을 경우 표식 검출
 ```
-       if level < 3
-            Rotate(droneObj, -90);
-            [frame,ts] = snapshot(cameraObj);
-            [hall_frame, x, y] = loc_recog(frame);
-            
-            if x < 500
-                Move(droneObj, 1, dir);
-                dir = "left";
-                Move(droneObj, 0.3, dir);
+        while 1
+            if force_cir_noncheck == 0
+                cir_num = Cir_Check(cameraObj);
             else
-                Move(droneObj, 1, dir);
-                dir = "right";
-                Move(droneObj, 0.3, dir);
+                force_cir_noncheck = 0;
             end
-            level = level + 1;
 ```
---------------------------------------------------------------
-* 링이 너무 높아 화면에 안나올 경우
+
+* 파란색 표식 검출 됐을 경우 착륙
+```
+            if cir_num == 2     % 파란 원
+                land(droneObj);
+                return;
+```
+
+* 빨간색 표식 검출 됐을 경우 좌로 90도 회전 후 링 인식
+```
+            elseif cir_num == 1 %
+                Rotate(droneObj, -90);
+                
+                [frame,ts] = snapshot(cameraObj);
+                [hall_frame, x, y] = loc_recog(frame);
+```
+* 링이 너무 높아 화면에 나오지 않을 경우 상승하여 링 재인식
 ```
                 if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
                     Move(droneObj, 0.4, "up");
                     
                     [frame,ts] = snapshot(cameraObj);
-                    [hall_frame, x, y] = loc_recog(frame);                                    
-                    
+                    [hall_frame, x, y] = loc_recog(frame);
+```
+* 상승시에도 링 검출 실패할 경우 하강하여 재인식
+```
                     if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
                         Move(droneObj, 0.7, "down");
                         break;
                     end
                 end
 ```
-* 링 통과 후 90도 회전하고 드론 위치 설정
+
+* 인식한 링의 중앙 좌표에 따라 이동
 ```
                 if x < 500 && y < 150
                     Move(droneObj, 1.1, "forward");
@@ -140,64 +161,61 @@ while 1
                     break;
                 end
 ```
-* 원이 드론시야에 들어오지 않을 때
+* 표식(원) 검출 실패 시
 ```
             elseif cir_num == 3
                 while force_cir_noncheck == 0
 ```
-* 좌우 회전 하여 시야 확보 후에 원이 시야에 들어오지 않을 때
+
+* 좌우 회전하여 링 탐색
 ```
-Rotate(droneObj, 20);
+                   Rotate(droneObj, 20);
                    cir_num = Cir_Check(cameraObj);
                    if cir_num ~= 3
                        force_cir_noncheck = 1;
                    end
-```
-* 원 위치
-```
-                   Rotate(droneObj, -20);
-```
-
-* 3단계 링 통과 후 착지
-```
-        elseif level == 3
-            land(droneObj);
-            break;
+                   Rotate(droneObj, -20);       %원위치
+                   
+                   if force_cir_noncheck == 0
+                       Rotate(droneObj, -20);
+                       cir_num = Cir_Check(cameraObj);
+                       if cir_num ~= 3
+                           force_cir_noncheck = 1;
+                       end
+                       Rotate(droneObj, 20);    %원위치
+                   end
+                   if force_cir_noncheck == 0
+                       Move(droneObj, 0.2, "up");
+                       cir_num = Cir_Check(cameraObj);
+                       if cir_num ~= 3
+                           force_cir_noncheck = 1;
+                       end
+                   end
+                end
+            end
         end
 ```
 
-* 링의 중앙점이 최적 거리 내에 없을 때 중앙점의 좌표에 따라 드론을 이동
+* 드론이 전진하기 위한 좌표 범위와 인식한 링의 중앙 좌표차에 따라 이동
 ```
     else
-        dist = 0.2;
         x_diff = x - 500;
         y_diff = y - 150;
 
         if y_diff > 30
-            dir = "down";
-            disp("down");
-            Move(droneObj, dist, dir);
+            Move(droneObj, 0.2, "down");
         elseif y_diff < -30
-            dir = "up";
-            disp("up");
-            Move(droneObj, dist, dir);
+            Move(droneObj, 0.2, "up");
         end
         
         if x_diff > 30
-            dir = "right";
-            disp("right");
-            Move(droneObj, dist, dir);
+            Move(droneObj, 0.2, "right");
         elseif x_diff < -30
-            dir = "left";
-            disp("left");
-            Move(droneObj, dist, dir);
+            Move(droneObj, 0.2, "left");
         end
     end
 end
-```
 
-* 위치 인식
-```
 function [hall_frame, x, y] = loc_recog(frame)
     global min_h;
     global max_h;
@@ -205,25 +223,21 @@ function [hall_frame, x, y] = loc_recog(frame)
     hsv = rgb2hsv(frame);
     h = hsv(:,:,1);
     detect_green = (min_h < h) & (h < max_h);
-    
 ```
---------------------------------------------------------------------------
+
 * 픽셀수가 일정 개수보다 적은 연결성분 제거
 ```
     bw = bwareaopen(detect_green, 1000);
 ```
-
 * 침식
 ```
     se = strel('line', 20, 0);
     bw = imerode(bw,se);
 ```
-
 * 팽창
 ```
     bw = imdilate(bw, se);
 ```
-
 * 링의 중앙점 검출
 ```
     [width, height] = size(bw);
@@ -244,11 +258,10 @@ function [hall_frame, x, y] = loc_recog(frame)
     x = int16(median(col));
 end
 ```
-
-* 입력되는 방향에 따라 드론을 이동
+* 입력되는 방향에 따라 드론 이동
 ```
 function rtn = Move(droneObj, dist, dir)
-   global move_dist;
+    global move_dist;
     if dir == "forward"
         moveforward(droneObj, 'Distance', dist);
         move_dist = move_dist + dist;
@@ -267,23 +280,10 @@ function rtn = Move(droneObj, dist, dir)
     rtn = "";
 end
 ```
-
-* 입력 받은 각도만큼 드론을 회전
+* 입력 받은 각도만큼 드론 회전
 ```
 function rtn = Rotate(droneObj,ang)
     turn(droneObj, deg2rad(ang));
     rtn = "";
 end
-```
-------------------------------------------------
-#### ✔ 2차 시도
-------------------------------------------------
-```
-코드
-```
-------------------------------------------------
-#### ✔ 3차 시도
------------------------------------------------
-```
-코드
 ```
