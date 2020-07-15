@@ -76,13 +76,6 @@ while 1
    if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
         continue;
     end
-    
-    for r = x-5:x+5
-       for c = y-5:y+5
-           hall_frame(c, r) = 0;
-       end
-    end
-    subplot(3, 1, 1); imshow(hall_frame);
 ```
 * 드론이 링의 중앙 범위에 위치할 때 표식까지 남은 거리만큼 전진
 ```
@@ -114,7 +107,7 @@ while 1
 * 빨간색 표식 검출 됐을 경우 좌로 90도 회전 후 링 인식
 ```
             elseif cir_num == 1 % 빨간 원
-                Rotate(droneObj, -90); % 90도 회전 후 화면 읽어서 홀의 좌표 값을 미리 저장, 전진하여 링과의 충돌 방지 좌표값에 따라 좌우 이동하여 링 탐색
+                Rotate(droneObj, -90); 
                 
                 [frame,ts] = snapshot(cameraObj);
                 [hall_frame, x, y] = loc_recog(frame);
@@ -166,8 +159,8 @@ while 1
             elseif cir_num == 3
                 while force_cir_noncheck == 0
 ```
-* 표식 (원) 검출 성공시
-  + force 변수에 1을 저장하여 표식을 인식하지 못하도록 함
+* 표식 (원) 검출 실패시
+  + 우, 좌, 상 반복하여 인식하여 검출 되었을 때, force 변수에 1을 저장하여 표식을 인식하지 못하도록 함
 ```
                    Rotate(droneObj, 20);
                    cir_num = Cir_Check(cameraObj);
@@ -290,7 +283,7 @@ end
 ```
 * 표식 체크 함수 
   + 빨강 파랑을 h, s값으로 이진화
-  + 빨간표식 == 1, 파랑표식 =2, 반환값 없을 경우 == 3
+  + 빨간표식 == 1, 파랑표식 =2, 미인식 == 3
 ```
 function cir_num = Cir_Check(cameraObj)
     [frame,ts] = snapshot(cameraObj);
@@ -311,7 +304,7 @@ function cir_num = Cir_Check(cameraObj)
     elseif nnz(detect_blue) > 50
         cir_num = 2; % blue
     else
-        cir_num = 3; % 원 인식 못할 때 (벽과 너무 가깝거나 다른 위치일 때)
+        cir_num = 3; % 표식(원) 인식 못할 때
     end
 end
 ```
