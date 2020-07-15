@@ -40,7 +40,6 @@
 ```
 droneObj = ryze()
 
-% 임계값 설정
 global min_h;   global max_h;
 min_h = 0.225;  max_h = 0.405;
 global dist_to_cir;
@@ -53,7 +52,7 @@ move_dist = 0;
 * 이륙
 ```
 takeoff(droneObj);
-moveup(droneObj, 'Distance', 0.3);
+Move(droneObj, 0.3, "up");
 ```
 
 * 텔로 카메라 프레임 수신
@@ -73,7 +72,7 @@ while 1
         continue;
     end
 ```
-
+---------------------------------------------------------
 * 링의 중앙점이 최적 거리 내에 있을 때 직진 2.3M
 ```
     if ((x >= 450) && (x <= 550)) && ((y >= 110) && (y <= 190))
@@ -100,6 +99,61 @@ while 1
                 Move(droneObj, 0.3, dir);
             end
             level = level + 1;
+```
+--------------------------------------------------------------
+* 링이 너무 높아 화면에 안나올 경우
+```
+                if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
+                    Move(droneObj, 0.4, "up");
+                    
+                    [frame,ts] = snapshot(cameraObj);
+                    [hall_frame, x, y] = loc_recog(frame);                                    
+                    
+                    if isnan(x) || isnan(y) || x-5 < 0 || y-5 < 0
+                        Move(droneObj, 0.7, "down");
+                        break;
+                    end
+                end
+```
+* 링 통과 후 90도 회전하고 드론 위치 설정
+                if x < 500 && y < 150
+                    Move(droneObj, 1.1, "forward");
+                    Move(droneObj, 0.3, "left");
+                    Move(droneObj, 0.3, "up");
+                    break;
+                elseif x < 500 && y > 150
+                    Move(droneObj, 1.1, "forward");
+                    Move(droneObj, 0.3, "left");
+                    Move(droneObj, 0.3, "down");
+                    break;
+                elseif x > 500 && y < 150
+                    Move(droneObj, 1.1, "forward");
+                    Move(droneObj, 0.3, "right");
+                    Move(droneObj, 0.3, "up");
+                    break;
+                elseif x > 500 && y > 150
+                    Move(droneObj, 1.1, "forward");
+                    Move(droneObj, 0.3, "right");
+                    Move(droneObj, 0.3, "down");
+                    break;
+                end
+```
+* 원이 드론시야에 들어오지 않을 때
+```
+            elseif cir_num == 3
+                while force_cir_noncheck == 0
+```
+* 좌우 회전 하여 시야 확보 후에 원이 시야에 들어오지 않을 때
+```
+Rotate(droneObj, 20);
+                   cir_num = Cir_Check(cameraObj);
+                   if cir_num ~= 3
+                       force_cir_noncheck = 1;
+                   end
+```
+* 원 위치
+```
+                   Rotate(droneObj, -20);
 ```
 
 * 3단계 링 통과 후 착지
@@ -151,7 +205,7 @@ function [hall_frame, x, y] = loc_recog(frame)
     detect_green = (min_h < h) & (h < max_h);
     
 ```
-
+--------------------------------------------------------------------------
 * 픽셀수가 일정 개수보다 적은 연결성분 제거
 ```
     bw = bwareaopen(detect_green, 1000);
@@ -172,14 +226,9 @@ function [hall_frame, x, y] = loc_recog(frame)
 ```
     [width, height] = size(bw);
     
-    for i = 1:height
-        bw(i, 1) = 1;
-        bw(i, width) = 1;
-    end
-    
-    for i = 1:width
-        bw(1, i) = 1;
-    end
+    bw(:, 1) = 1;
+    bw(:, width) = 1;
+    bw(1, :) = 1;
     
     bw2 = imfill(bw, 'holes');
     
@@ -197,8 +246,10 @@ end
 * 입력되는 방향에 따라 드론을 이동
 ```
 function rtn = Move(droneObj, dist, dir)
+   global move_dist;
     if dir == "forward"
         moveforward(droneObj, 'Distance', dist);
+        move_dist = move_dist + dist;
     elseif dir == "back"
         moveback(droneObj, 'Distance', dist);
     elseif dir == "right"
@@ -210,6 +261,7 @@ function rtn = Move(droneObj, dist, dir)
     elseif dir == "down"
         movedown(droneObj, 'Distance', dist);
     end
+    pause(0.5);
     rtn = "";
 end
 ```
