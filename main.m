@@ -100,7 +100,7 @@ while 1
                    %좌우 회전 후 없으면
                    Rotate(droneObj, 20);
                    cir_num = Cir_Check(cameraObj);
-                   if loop_cnt > 2
+                   if loop_cnt > 1
                        if stage == 3
                            cir_num = 2;
                        elseif stage < 3
@@ -131,7 +131,7 @@ while 1
             
             else
                 cir_error_cnt = cir_error_cnt + 1;
-                if cir_error_cnt >= 3
+                if cir_error_cnt >= 2
                     force_cir_noncheck = 1;
                     if stage == 3
                         cir_num = 2;
