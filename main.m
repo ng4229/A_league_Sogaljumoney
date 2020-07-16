@@ -25,13 +25,6 @@ while 1
         continue;
     end
     
-    for r = x-5:x+5
-       for c = y-5:y+5
-           hall_frame(c, r) = 0;
-       end
-    end
-    subplot(2, 2, 1); imshow(hall_frame);
-    
     if ((x >= 450) && (x <= 550)) && ((y >= 110) && (y <= 190))
         dist = dist_to_cir - move_dist;
         Move(droneObj, dist, "forward");
@@ -238,15 +231,13 @@ function cir_num = Cir_Check(cameraObj)
     hsv = rgb2hsv(frame);
     h = hsv(:,:,1);
     s = hsv(:,:,2);
-    detect_red = (0 < h) &(h < 0.05) | (h < 1) & (h > 0.95);
-    detect_red_s = (0.5 < s) & (s < 0.8);
+    detect_red = (0 <= h) &(h < 0.05) | (h <= 1) & (h > 0.95);
+    detect_red_s = (0.6 < s) & (s <= 1);
     detect_red = detect_red & detect_red_s;
 
     detect_blue = (h > 0.5) & (h < 0.6);
-    detect_blue_s = (0.5 < s) & (s < 0.8);
+    detect_blue_s = (0.6 < s) & (s <= 1);
     detect_blue = detect_blue & detect_blue_s;
-    subplot(2, 2, 2); imshow(detect_red);
-    subplot(2, 2, 3); imshow(detect_blue);
     if nnz(detect_red) > 50
         cir_num = 1; % red
     elseif nnz(detect_blue) > 50
