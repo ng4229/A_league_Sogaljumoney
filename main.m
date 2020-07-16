@@ -1,4 +1,5 @@
 droneObj = ryze()
+stage = 0;
 % h 임계값 설정
 global min_h;   global max_h;
 min_h = 0.225;  max_h = 0.405;
@@ -29,25 +30,26 @@ while 1
            hall_frame(c, r) = 0;
        end
     end
-    subplot(3, 1, 1); imshow(hall_frame);
+    subplot(2, 2, 1); imshow(hall_frame);
     
     if ((x >= 450) && (x <= 550)) && ((y >= 110) && (y <= 190))
         dist = dist_to_cir - move_dist;
         Move(droneObj, dist, "forward");
+        stage = stage + 1;
         move_dist = 0;
         dist_to_cir = 3.2;
         force_cir_noncheck = 0;
+        cir_error_cnt = 0;
         while 1
             if force_cir_noncheck == 0
                 cir_num = Cir_Check(cameraObj);
             else
                 force_cir_noncheck = 0;
             end
-            
-            if cir_num == 2     % 파란 원
+            if stage == 3 && cir_num == 2     % 파란 원
                 land(droneObj);
-                return;
-            elseif cir_num == 1 % 빨간 원
+                return;     % 종료
+            elseif stage < 3 && cir_num == 1 % 빨간 원
                 Rotate(droneObj, -90);
                 
                 [frame,ts] = snapshot(cameraObj);
@@ -91,10 +93,20 @@ while 1
                 
             % 원이 안보일때
             elseif cir_num == 3
+                loop_cnt = 0;
                 while force_cir_noncheck == 0
-                   %좌우 회전 후 없으면  
+                   loop_cnt = loop_cnt+1;
+                   
+                   %좌우 회전 후 없으면
                    Rotate(droneObj, 20);
                    cir_num = Cir_Check(cameraObj);
+                   if loop_cnt > 2
+                       if stage == 3
+                           cir_num = 2;
+                       elseif stage < 3
+                           cir_num = 1;
+                       end
+                   end
                    if cir_num ~= 3
                        force_cir_noncheck = 1;
                    end
@@ -116,20 +128,42 @@ while 1
                        end
                    end
                 end
-            end %elseif num=3 end
+            
+            else
+                cir_error_cnt = cir_error_cnt + 1;
+                if cir_error_cnt >= 3
+                    force_cir_noncheck = 1;
+                    if stage == 3
+                        cir_num = 2;
+                    elseif stage < 3
+                        cir_num = 1;
+                    end
+                end
+            end %elseif num=3 end                    
         end     %while end
+        if stage >= 3
+            stage = 2;
+        end
     else
         x_diff = x - 500;
         y_diff = y - 150;
-
-        if y_diff > 30
+        
+        if y_diff > 150
+            Move(droneObj, 0.4, "down");
+        elseif y_diff > 30
             Move(droneObj, 0.2, "down");
+        elseif y_diff < -150
+            Move(droneObj, 0.4, "up");
         elseif y_diff < -30
             Move(droneObj, 0.2, "up");
         end
         
-        if x_diff > 30
+        if x_diff > 150
+            Move(droneObj, 0.4, "right");
+        elseif x_diff > 30
             Move(droneObj, 0.2, "right");
+        elseif x_diff < -150
+            Move(droneObj, 0.4, "left");
         elseif x_diff < -30
             Move(droneObj, 0.2, "left");
         end
@@ -211,8 +245,8 @@ function cir_num = Cir_Check(cameraObj)
     detect_blue = (h > 0.5) & (h < 0.6);
     detect_blue_s = (0.5 < s) & (s < 0.8);
     detect_blue = detect_blue & detect_blue_s;
-    subplot(3, 1, 2); imshow(detect_red);
-    subplot(3, 1, 3); imshow(detect_blue);
+    subplot(2, 2, 2); imshow(detect_red);
+    subplot(2, 2, 3); imshow(detect_blue);
     if nnz(detect_red) > 50
         cir_num = 1; % red
     elseif nnz(detect_blue) > 50
